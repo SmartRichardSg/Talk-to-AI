@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f3f7fb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Talk to AI">
+  <title>Talk to AI</title>
+  <link rel="icon" href="icon.png" type="image/png">
+  <style>
+    :root { --ink:#18324b; --muted:#52677b; --blue:#1769aa; --blue-dark:#10558d; --pale:#e8f3fc; --card:#fff; --line:#d7e2ec; --green:#18734a; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:linear-gradient(180deg,#edf6fc 0%,#f8fbfd 100%); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; font-size:18px; line-height:1.5; }
+    main { max-width:620px; margin:0 auto; padding: max(24px,env(safe-area-inset-top)) 18px max(28px,env(safe-area-inset-bottom)); min-height:100dvh; display:flex; flex-direction:column; }
+    header { text-align:center; padding:24px 8px 14px; }
+    .mark { width:76px; height:76px; margin:0 auto 14px; border-radius:24px; background:#dceefa; display:grid; place-items:center; font-size:42px; }
+    h1 { margin:0; font-size:clamp(30px,7vw,38px); line-height:1.15; letter-spacing:-.5px; }
+    .subtitle { margin:12px auto 0; max-width:420px; color:var(--muted); font-size:19px; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:22px; padding:22px; box-shadow:0 8px 24px rgba(29,70,105,.06); }
+    .home-card { margin-top:18px; text-align:center; }
+    .primary { display:block; width:100%; min-height:78px; border:0; border-radius:18px; padding:18px 16px; background:var(--blue); color:#fff; font:700 21px/1.25 inherit; font-size:21px; font-weight:750; cursor:pointer; box-shadow:0 5px 0 var(--blue-dark); }
+    .primary:active { transform:translateY(2px); box-shadow:0 3px 0 var(--blue-dark); }
+    .hint { color:var(--muted); font-size:16px; margin:18px 0 0; }
+    .settings-button { display:block; margin:22px auto 0; border:1px solid #c8d9e7; background:#fff; color:var(--ink); border-radius:14px; min-height:54px; padding:12px 20px; font-size:17px; font-weight:650; cursor:pointer; }
+    .saved-note { text-align:center; color:var(--green); font-size:15px; min-height:24px; margin-top:10px; }
+    .settings { display:none; margin-top:22px; }
+    .settings.visible { display:block; }
+    .settings h2 { font-size:27px; margin:0 0 6px; }
+    .section-intro { color:var(--muted); font-size:16px; margin:0 0 22px; }
+    .field { margin:20px 0 0; }
+    label.field-label, legend { display:block; font-size:18px; font-weight:750; margin-bottom:8px; }
+    select, textarea, input[type="text"] { width:100%; border:1px solid #b9cad9; border-radius:12px; background:#fff; color:var(--ink); padding:14px; font:inherit; font-size:17px; }
+    textarea { min-height:110px; resize:vertical; }
+    fieldset { border:0; padding:0; margin:22px 0 0; }
+    .choices { display:grid; grid-template-columns:1fr; gap:10px; }
+    .choice { display:flex; align-items:flex-start; gap:12px; border:1px solid var(--line); border-radius:12px; padding:12px; font-size:17px; background:#fbfdff; }
+    .choice input { width:22px; height:22px; flex:0 0 22px; margin:2px 0 0; accent-color:var(--blue); }
+    .actions { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:24px; }
+    .secondary { min-height:56px; border:1px solid #b9cad9; border-radius:13px; background:#fff; color:var(--ink); font-size:17px; font-weight:700; padding:12px; cursor:pointer; }
+    .save { background:#176b4b; color:#fff; border-color:#176b4b; }
+    .small-note { color:var(--muted); font-size:14px; margin:18px 0 0; }
+    footer { margin-top:auto; padding-top:28px; text-align:center; color:#64798b; font-size:13px; }
+    .notice { display:none; border-radius:12px; padding:12px; background:#fff6dd; color:#614a0b; font-size:15px; margin-top:16px; }
+    .notice.show { display:block; }
+    @media (min-width:520px) { .choices { grid-template-columns:1fr 1fr; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="mark" aria-hidden="true">💬</div>
+    <h1>Talk to AI</h1>
+    <p class="subtitle">A friendly place to talk, ask questions and learn.</p>
+  </header>
+
+  <section class="card home-card" aria-label="Start a conversation">
+    <p style="font-size:23px;font-weight:650;margin:0 0 22px">What would you like to talk about today?</p>
+    <button class="primary" id="startBtn">START CONVERSATION</button>
+    <p class="hint">Tap the button to open ChatGPT with your conversation preferences.</p>
+    <button class="settings-button" id="settingsBtn" aria-expanded="false" aria-controls="settingsPanel">⚙️ Settings</button>
+    <div class="saved-note" id="savedNote" aria-live="polite"></div>
+    <div class="notice" id="launchNotice" role="status">ChatGPT has opened. If your instruction appears in the message box, press Send. To talk aloud, use ChatGPT's voice button if available.</div>
+  </section>
+
+  <section class="card settings" id="settingsPanel" aria-labelledby="settingsTitle">
+    <h2 id="settingsTitle">Settings</h2>
+    <p class="section-intro">These preferences guide the conversation. They do not prevent the user from asking other questions. Password protection is OFF for testing.</p>
+
+    <div class="field">
+      <label class="field-label" for="language">Preferred conversation language</label>
+      <select id="language">
+        <option>English</option>
+        <option>Mandarin Chinese (普通话)</option>
+        <option>Teochew</option>
+        <option>Malay</option>
+        <option>Japanese</option>
+        <option>Tamil</option>
+        <option>Other / follow the user's language</option>
+      </select>
+    </div>
+
+    <fieldset>
+      <legend>Conversation topics to encourage</legend>
+      <div class="choices" id="topics">
+        <label class="choice"><input type="checkbox" value="Everyday conversation" checked> Everyday conversation</label>
+        <label class="choice"><input type="checkbox" value="Health and healthy living" checked> Health and healthy living</label>
+        <label class="choice"><input type="checkbox" value="Learning and education" checked> Learning and education</label>
+        <label class="choice"><input type="checkbox" value="Memories and life stories" checked> Memories and life stories</label>
+        <label class="choice"><input type="checkbox" value="Hobbies and interests" checked> Hobbies and interests</label>
+        <label class="choice"><input type="checkbox" value="Family and relationships" checked> Family and relationships</label>
+        <label class="choice"><input type="checkbox" value="Travel and culture" checked> Travel and culture</label>
+        <label class="choice"><input type="checkbox" value="General knowledge" checked> General knowledge</label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Conversation style and restrictions</legend>
+      <div class="choices" id="rules">
+        <label class="choice"><input type="checkbox" value="Use simple words and short sentences." checked> Use simple words and short sentences</label>
+        <label class="choice"><input type="checkbox" value="Be patient, warm, respectful, and never rush the user." checked> Be patient and friendly</label>
+        <label class="choice"><input type="checkbox" value="Ask one question at a time." checked> Ask one question at a time</label>
+        <label class="choice"><input type="checkbox" value="Explain unfamiliar ideas clearly and give examples when helpful." checked> Explain unfamiliar ideas clearly</label>
+        <label class="choice"><input type="checkbox" value="Avoid graphic, frightening, or needlessly disturbing detail." checked> Avoid frightening or graphic detail</label>
+        <label class="choice"><input type="checkbox" value="For medical, legal, or financial matters, be cautious, explain uncertainty, and encourage qualified professional advice when appropriate." checked> Be careful with health, legal and money advice</label>
+      </div>
+    </fieldset>
+
+    <div class="field">
+      <label class="field-label" for="customRules">Additional instructions (optional)</label>
+      <textarea id="customRules" placeholder="For example: use local Singapore examples, or help the user practise speaking English."></textarea>
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="opening">Opening greeting (optional)</label>
+      <input id="opening" type="text" maxlength="180" placeholder="For example: Hello! How are you today?">
+    </div>
+
+    <div class="actions">
+      <button class="secondary save" id="saveBtn">SAVE SETTINGS</button>
+      <button class="secondary" id="closeBtn">CLOSE</button>
+    </div>
+    <p class="small-note">Settings are saved on this device in this browser. They are included in the instruction sent to ChatGPT when you start a conversation. The launch method may show the instruction as a draft that needs to be sent.</p>
+  </section>
+
+  <footer>Made to keep conversations simple.</footer>
+</main>
+<script>
+(function () {
+  const KEY = "talkToAISettingsV1";
+  const $ = (id) => document.getElementById(id);
+  const panel = $("settingsPanel");
+  const note = $("savedNote");
+  const launchNotice = $("launchNotice");
+
+  function selectedValues(containerId) {
+    return Array.from($(containerId).querySelectorAll('input[type="checkbox"]:checked')).map(el => el.value);
+  }
+  function setSelected(containerId, values) {
+    const wanted = new Set(values || []);
+    $(containerId).querySelectorAll('input[type="checkbox"]').forEach(el => { el.checked = wanted.has(el.value); });
+  }
+  function defaults() {
+    return {
+      language: "English",
+      topics: ["Everyday conversation","Health and healthy living","Learning and education","Memories and life stories","Hobbies and interests","Family and relationships","Travel and culture","General knowledge"],
+      rules: [
+        "Use simple words and short sentences.",
+        "Be patient, warm, respectful, and never rush the user.",
+        "Ask one question at a time.",
+        "Explain unfamiliar ideas clearly and give examples when helpful.",
+        "Avoid graphic, frightening, or needlessly disturbing detail.",
+        "For medical, legal, or financial matters, be cautious, explain uncertainty, and encourage qualified professional advice when appropriate."
+      ],
+      customRules: "",
+      opening: ""
+    };
+  }
+  function readSettings() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(KEY));
+      return saved && typeof saved === "object" ? {...defaults(), ...saved} : defaults();
+    } catch (_) { return defaults(); }
+  }
+  function loadSettings() {
+    const s = readSettings();
+    $("language").value = s.language || "English";
+    setSelected("topics", s.topics);
+    setSelected("rules", s.rules);
+    $("customRules").value = s.customRules || "";
+    $("opening").value = s.opening || "";
+  }
+  function collectSettings() {
+    return {
+      language: $("language").value,
+      topics: selectedValues("topics"),
+      rules: selectedValues("rules"),
+      customRules: $("customRules").value.trim(),
+      opening: $("opening").value.trim()
+    };
+  }
+  function saveSettings(showMessage = true) {
+    const s = collectSettings();
+    try {
+      localStorage.setItem(KEY, JSON.stringify(s));
+      if (showMessage) {
+        note.textContent = "Settings saved on this device.";
+        window.setTimeout(() => { if (note.textContent === "Settings saved on this device.") note.textContent = ""; }, 3500);
+      }
+      return s;
+    } catch (_) {
+      note.textContent = "Could not save settings in this browser.";
+      return s;
+    }
+  }
+  function makePrompt(s) {
+    const lines = [
+      "Please begin a friendly, patient conversation with me.",
+      "Preferred conversation language: " + s.language + ". Please use this language unless I ask to change it.",
+      "Speak naturally and clearly. I may ask you to speak faster or slower, use simpler words, repeat something, or adjust your voice. Follow these requests where your voice features allow. If I ask you to speak louder or softer, explain briefly if I need to change my device volume.",
+      "Topics to encourage when relevant: " + (s.topics.length ? s.topics.join(", ") : "Follow my interests and questions") + ". These are suggestions, not limits; answer my other questions too.",
+      "Conversation preferences: " + (s.rules.length ? s.rules.join(" ") : "Be helpful, patient, respectful, and clear."),
+      "Respect safety and privacy. Do not claim certainty when uncertain. For medical, legal, or financial matters, be careful and recommend qualified professional help when appropriate."
+    ];
+    if (s.customRules) lines.push("Additional instructions: " + s.customRules);
+    if (s.opening) lines.push("Start by saying: " + s.opening);
+    else lines.push("Start with a short greeting and one simple question. Keep the first response brief.");
+    return lines.join("\n\n");
+  }
+
+  $("settingsBtn").addEventListener("click", () => {
+    const show = !panel.classList.contains("visible");
+    panel.classList.toggle("visible", show);
+    $("settingsBtn").setAttribute("aria-expanded", String(show));
+    if (show) { loadSettings(); panel.scrollIntoView({behavior:"smooth", block:"start"}); }
+    else { $("settingsBtn").focus(); }
+  });
+  $("closeBtn").addEventListener("click", () => {
+    panel.classList.remove("visible");
+    $("settingsBtn").setAttribute("aria-expanded", "false");
+    $("settingsBtn").focus();
+  });
+  $("saveBtn").addEventListener("click", () => saveSettings(true));
+  $("startBtn").addEventListener("click", () => {
+    const s = saveSettings(false);
+    const url = "https://chatgpt.com/?q=" + encodeURIComponent(makePrompt(s));
+    launchNotice.classList.add("show");
+    // Opening a new tab/window may be blocked if the browser considers it a popup.
+    const opened = window.open(url, "_blank", "noopener");
+    if (!opened) window.location.href = url;
+  });
+
+  loadSettings();
+})();
+</script>
+</body>
+</html>
